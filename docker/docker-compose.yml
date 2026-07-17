@@ -1,0 +1,17 @@
+# Docker Compose — Macroeconomic AI Platform
+# Placeholder: ajustar serviços conforme stack definida (backend, frontend, db, n8n)
+
+version: "3.9"
+services:
+  # backend:
+  #   build: ../backend
+  #   ports:
+  #     - "8000:8000"
+  # frontend:
+  #   build: ../frontend
+  #   ports:
+  #     - "3000:3000"
+  # n8n:
+  #   image: n8nio/n8n
+  #   ports:
+  #     - "5678:5678"
