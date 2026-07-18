@@ -1,0 +1,227 @@
+{
+  "name": "MACRO.AI — Monitor de Saúde dos Workflows n8n",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Monitor de Workflows Críticos\n\nDetecta workflows que deveriam estar ativos e não estão (ver docs/16_SECURITY.md, runbook #2 — 'workflow pausado manualmente').\n\n**Requer**:\n- Credencial de API do próprio n8n (Settings -> API -> gerar API Key) configurada no node 'Listar Workflows'.\n- Variável de ambiente N8N_BASE_URL (já definida no docker-compose.yml como http://localhost:5678, aponta para a própria instância).\n- Credencial Slack configurada no node de alerta.\n\nEdite a lista em 'Workflows Críticos (lista)' conforme novos workflows importantes forem criados.",
+        "height": 380,
+        "width": 320
+      },
+      "id": "note-1",
+      "name": "Nota — Leia antes de ativar",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -120,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-1",
+      "name": "Agendamento Diário",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "workflowsCriticos",
+              "value": "=[\"MACRO.AI — Recomendação de Rebalanceamento de Portfólio (Longo Prazo)\"]",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-1",
+      "name": "Workflows Críticos (lista)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.N8N_BASE_URL }}/api/v1/workflows",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-1",
+      "name": "Listar Workflows (API n8n)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        360,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const criticos = $('Workflows Críticos (lista)').first().json.workflowsCriticos;\nconst resposta = $input.first().json;\nconst workflows = resposta.data || resposta || [];\n\nconst inativos = [];\nconst naoEncontrados = [];\n\nfor (const nome of criticos) {\n  const wf = workflows.find(w => w.name === nome);\n  if (!wf) {\n    naoEncontrados.push(nome);\n  } else if (!wf.active) {\n    inativos.push(nome);\n  }\n}\n\nconst alertNeeded = inativos.length > 0 || naoEncontrados.length > 0;\n\nlet linhas = '';\nif (inativos.length) {\n  linhas += 'Pausados/inativos:\\n' + inativos.map(n => `• ${n}`).join('\\n') + '\\n\\n';\n}\nif (naoEncontrados.length) {\n  linhas += 'Não encontrados na instância (renomeados ou removidos?):\\n' + naoEncontrados.map(n => `• ${n}`).join('\\n');\n}\n\nconst alertMessage = `🔧 Monitor de Workflows MACRO.AI\\n\\n${linhas || 'Todos os workflows críticos estão ativos.'}`;\n\nreturn [{ json: { alertNeeded, inativos, naoEncontrados, alertMessage } }];"
+      },
+      "id": "code-1",
+      "name": "Verificar Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.alertNeeded }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-1",
+      "name": "Precisa Alertar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        840,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#portfolio-alerts",
+          "mode": "name"
+        },
+        "text": "={{ $json.alertMessage }}",
+        "otherOptions": {}
+      },
+      "id": "slack-1",
+      "name": "Alertar → Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        1080,
+        180
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "noop-1",
+      "name": "Tudo OK",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1080,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Agendamento Diário": {
+      "main": [
+        [
+          {
+            "node": "Workflows Críticos (lista)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflows Críticos (lista)": {
+      "main": [
+        [
+          {
+            "node": "Listar Workflows (API n8n)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar Workflows (API n8n)": {
+      "main": [
+        [
+          {
+            "node": "Verificar Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Status": {
+      "main": [
+        [
+          {
+            "node": "Precisa Alertar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Precisa Alertar?": {
+      "main": [
+        [
+          {
+            "node": "Alertar → Slack",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tudo OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

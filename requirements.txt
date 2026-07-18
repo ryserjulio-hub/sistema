@@ -1,0 +1,7 @@
+# Dependências principais (ajustar conforme necessidade)
+pandas
+numpy
+yfinance
+statsmodels
+scikit-learn
+scipy

@@ -1,38 +1,16 @@
-# Macroeconomic AI Platform
+# N8N Automation
 
-Plataforma de inteligência macroeconômica com pipeline de dados, modelagem econométrica, forecast engine, gestão de portfólio, risk management e automação via n8n.
+Workflows de automação (arquivos `.json` exportados do n8n) que orquestram
+o pipeline de dados, modelos e notificações.
 
-## Estrutura do projeto
+- `workflows/` — arquivos de workflow exportados
+  - `portfolio_rebalance_recommendation.json` — chama a Portfolio Manager
+    API (`python/agents/api.py`) mensalmente, avalia se a carteira precisa
+    de rebalanceamento e alerta via Slack quando necessário.
+  - `workflow_health_monitor.json` — roda diariamente, verifica via API do
+    próprio n8n se os workflows críticos estão ativos e alerta via Slack se
+    algum estiver pausado ou tiver sumido.
 
-- `docs/` — Documentação técnica e de negócio (numerada, ver índice abaixo)
-- `backend/` — API e serviços de backend
-- `frontend/` — Dashboards e interfaces
-- `n8n/` — Workflows de automação
-- `python/` — Scripts, modelos e pipelines em Python
-- `stata/` — Rotinas de validação econométrica em Stata
-- `docker/` — Configuração de containers e orquestração
-
-## Índice da documentação
-
-| # | Documento | Descrição |
-|---|-----------|-----------|
-| 01 | Executive Summary | Visão geral do projeto |
-| 02 | Business Objectives | Objetivos de negócio |
-| 03 | System Architecture | Arquitetura do sistema |
-| 04 | Data Pipeline | Pipeline de dados |
-| 05 | Data Lake | Armazenamento de dados brutos/processados |
-| 06 | Database | Modelo de dados e schema |
-| 07 | Econometric Models | Modelos econométricos |
-| 08 | Forecast Engine | Motor de previsão |
-| 09 | Portfolio Manager | Gestão de portfólio |
-| 10 | Risk Engine | Motor de risco |
-| 11 | N8N Automation | Automação de workflows |
-| 12 | Dashboards | Painéis e visualizações |
-| 13 | APIs | Especificação de APIs |
-| 14 | Stata Validation | Validação estatística em Stata |
-| 15 | Deployment | Implantação |
-| 16 | Security | Segurança |
-
-## Status
-
-🚧 Em construção — scaffold inicial gerado em $(date +%Y-%m-%d).
+Ver `docs/11_N8N_AUTOMATION.md` para detalhes de importação e configuração,
+e `docs/16_SECURITY.md` para os runbooks operacionais e de segurança que
+motivaram o monitor de workflows.
